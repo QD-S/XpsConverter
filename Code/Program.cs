@@ -21,12 +21,12 @@
             SaveXpsPagesToBitMap(args[0], args.Length < 2 ? DefaultImageFormat : (ImageFormat)typeof(ImageFormat).GetProperty((char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null));
         }
 
-        private static void SaveXpsPagesToBitMap(string xpsFileName, ImageFormat imageFormat, string fileNameFormat = null)
+        private static void SaveXpsPagesToBitMap(string xpsFilePath, ImageFormat imageFormat, string fileNameFormat = null)
         {
-            var xpsDocument = new XpsDocument(xpsFileName, FileAccess.Read);
+            var xpsDocument = new XpsDocument(xpsFilePath, FileAccess.Read);
             var fixedDocumentSequence = xpsDocument.GetFixedDocumentSequence();
 
-            var directoryName = Path.GetFileNameWithoutExtension(xpsFileName);
+            var directoryName = Path.GetFileNameWithoutExtension(xpsFilePath);
             if (!Directory.Exists(directoryName)) Directory.CreateDirectory(directoryName);
 
             if (fileNameFormat == null) fileNameFormat = new string('0', fixedDocumentSequence.DocumentPaginator.PageCount.ToString().Length);
