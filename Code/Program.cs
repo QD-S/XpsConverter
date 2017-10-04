@@ -18,7 +18,8 @@
         {
             // First argument: file path
             // Second argument: image format type
-            SaveXpsPagesToBitMap(args[0], args.Length < 2 ? DefaultImageFormat : (ImageFormat)typeof(ImageFormat).GetProperty((char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null));
+            if (args.Length > 0)
+                SaveXpsPagesToBitMap(args[0], args.Length < 2 ? DefaultImageFormat : (ImageFormat)typeof(ImageFormat).GetProperty((char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null));
         }
 
         private static void SaveXpsPagesToBitMap(string xpsFilePath, ImageFormat imageFormat, string fileNameFormat = null)
