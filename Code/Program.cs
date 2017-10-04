@@ -11,12 +11,14 @@
 
     class Program
     {
+        public static readonly ImageFormat DefaultImageFormat = ImageFormat.Png;
+
         [STAThread]
         static void Main(string[] args)
         {
             // First argument: file path
             // Second argument: image format type
-            SaveXpsPagesToBitMap(args[0], (ImageFormat)typeof(ImageFormat).GetProperty(args.Length < 2 ? "Png" : (char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null));
+            SaveXpsPagesToBitMap(args[0], args.Length < 2 ? DefaultImageFormat : (ImageFormat)typeof(ImageFormat).GetProperty((char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null));
         }
 
         private static void SaveXpsPagesToBitMap(string xpsFileName, ImageFormat imageFormat, string fileNameFormat = null)
