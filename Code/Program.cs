@@ -12,14 +12,23 @@
     class Program
     {
         public static readonly ImageFormat DefaultImageFormat = ImageFormat.Png;
+        private static readonly string[] helpOptions = new[] { "?", "-h", "-help" };
 
         [STAThread]
         static void Main(string[] args)
         {
-            // First argument: file path
-            // Second argument: image format type
             if (args.Length > 0)
-                SaveXpsPagesToBitMap(args[0], args.Length < 2 ? DefaultImageFormat : (ImageFormat)typeof(ImageFormat).GetProperty((char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null));
+                if (helpOptions.Any(x => string.Equals(x, args[0], StringComparison.OrdinalIgnoreCase)))
+                {
+                    Console.WriteLine("First argument: file path");
+                    Console.WriteLine("Second argument: image format type (bmp, png, jpeg, etc.)");
+                    Console.WriteLine("Third argument: file name format");
+                }
+                else
+                    SaveXpsPagesToBitMap(
+                        args[0],
+                        args.Length < 2 ? DefaultImageFormat : (ImageFormat)typeof(ImageFormat).GetProperty((char.ToUpper(args[1].First()).ToString() + args[1].Substring(1).ToLower())).GetValue(null),
+                        args.Length < 3 || args[2] == string.Empty ? null : args[2]);
         }
 
         private static void SaveXpsPagesToBitMap(string xpsFilePath, ImageFormat imageFormat, string fileNameFormat = null)
@@ -30,10 +39,12 @@
             var directoryName = Path.GetFileNameWithoutExtension(xpsFilePath);
             if (!Directory.Exists(directoryName)) Directory.CreateDirectory(directoryName);
 
-            if (fileNameFormat == null) fileNameFormat = new string('0', fixedDocumentSequence.DocumentPaginator.PageCount.ToString().Length);
+            var pageCount = fixedDocumentSequence.DocumentPaginator.PageCount;
+            var formatPrefix = "{0:";
+            if (fileNameFormat == null) fileNameFormat = formatPrefix + new string('0', pageCount.ToString().Length) + "}";
 
             // Output image files from each page.
-            for (var pageNum = 0; pageNum < fixedDocumentSequence.DocumentPaginator.PageCount; pageNum++)
+            for (var pageNum = 0; pageNum < pageCount; pageNum++)
             {
                 var docPage = fixedDocumentSequence.DocumentPaginator.GetPage(pageNum);
 
@@ -43,7 +54,8 @@
                 var encoder = new BmpBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(renderTarget));
 
-                var filePath = Path.Combine(directoryName, pageNum.ToString(fileNameFormat) + "." + imageFormat.ToString().ToLower());
+                var fileName = fileNameFormat.IndexOf(formatPrefix) != -1 || pageCount == 1 ? string.Format(fileNameFormat, pageNum) : pageNum.ToString(fileNameFormat);
+                var filePath = Path.Combine(directoryName, fileName + "." + imageFormat.ToString().ToLower());
 
                 if (imageFormat == ImageFormat.Bmp)
                     using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
