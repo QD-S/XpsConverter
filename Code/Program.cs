@@ -12,7 +12,7 @@
     class Program
     {
         public static readonly ImageFormat DefaultImageFormat = ImageFormat.Png;
-        private static readonly string[] helpOptions = new[] { "?", "-h", "-help" };
+        private static readonly string[] helpOptions = { "?", "-h", "-help" };
 
         [STAThread]
         static void Main(string[] args)
@@ -33,39 +33,40 @@
 
         private static void SaveXpsPagesToBitMap(string xpsFilePath, ImageFormat imageFormat, string fileNameFormat = null)
         {
-            var xpsDocument = new XpsDocument(xpsFilePath, FileAccess.Read);
-            var fixedDocumentSequence = xpsDocument.GetFixedDocumentSequence();
-
-            var directoryName = Path.GetFileNameWithoutExtension(xpsFilePath);
-            if (!Directory.Exists(directoryName)) Directory.CreateDirectory(directoryName);
-
-            var pageCount = fixedDocumentSequence.DocumentPaginator.PageCount;
-            var formatPrefix = "{0:";
-            if (fileNameFormat == null) fileNameFormat = formatPrefix + new string('0', pageCount.ToString().Length) + "}";
-
-            // Output image files from each page.
-            for (var pageNum = 0; pageNum < pageCount; pageNum++)
+            using (var xpsDocument = new XpsDocument(xpsFilePath, FileAccess.Read))
             {
-                var docPage = fixedDocumentSequence.DocumentPaginator.GetPage(pageNum);
+                var fixedDocumentSequence = xpsDocument.GetFixedDocumentSequence();
 
-                var renderTarget = new RenderTargetBitmap((int)docPage.Size.Width, (int)docPage.Size.Height, 96, 96, PixelFormats.Pbgra32);
-                renderTarget.Render(docPage.Visual);
+                var directoryPath = Path.Combine(Path.GetDirectoryName(xpsFilePath), Path.GetFileNameWithoutExtension(xpsFilePath));
+                if (!Directory.Exists(directoryPath)) Directory.CreateDirectory(directoryPath);
 
-                var encoder = new BmpBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                var pageCount = fixedDocumentSequence.DocumentPaginator.PageCount;
+                var formatPrefix = "{0:";
+                if (fileNameFormat == null) fileNameFormat = formatPrefix + new string('0', pageCount.ToString().Length) + "}";
 
-                var fileName = fileNameFormat.IndexOf(formatPrefix) != -1 || pageCount == 1 ? string.Format(fileNameFormat, pageNum) : pageNum.ToString(fileNameFormat);
-                var filePath = Path.Combine(directoryName, fileName + "." + imageFormat.ToString().ToLower());
-
-                if (imageFormat == ImageFormat.Bmp)
-                    using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        encoder.Save(stream);
-                else
-                    using (var stream = new MemoryStream())
+                // Output image files from each page.
+                for (var pageNum = 0; pageNum < pageCount; pageNum++)
+                    using (var docPage = fixedDocumentSequence.DocumentPaginator.GetPage(pageNum))
                     {
-                        encoder.Save(stream);
-                        using (var bmp = new Bitmap(stream))
-                            bmp.Save(filePath, imageFormat);
+                        var renderTarget = new RenderTargetBitmap((int)docPage.Size.Width, (int)docPage.Size.Height, 96, 96, PixelFormats.Pbgra32);
+                        renderTarget.Render(docPage.Visual);
+
+                        var encoder = new BmpBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+
+                        var fileName = fileNameFormat.IndexOf(formatPrefix) != -1 || pageCount == 1 ? string.Format(fileNameFormat, pageNum) : pageNum.ToString(fileNameFormat);
+                        var filePath = Path.Combine(directoryPath, fileName + "." + imageFormat.ToString().ToLower());
+
+                        if (imageFormat == ImageFormat.Bmp)
+                            using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                                encoder.Save(stream);
+                        else
+                            using (var stream = new MemoryStream())
+                            {
+                                encoder.Save(stream);
+                                using (var bmp = new Bitmap(stream))
+                                    bmp.Save(filePath, imageFormat);
+                            }
                     }
             }
         }
